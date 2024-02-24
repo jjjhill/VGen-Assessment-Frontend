@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import styled from 'styled-components';
 import { Colours, Typography } from '../definitions';
 import Button from '../components/Button';
@@ -6,36 +6,35 @@ import PageLayout from '../components/PageLayout';
 import { clearTodoAlerts, clearTodoBody, updateTodoError, updateTodoName, updateTodoSuccess } from '../actions/todo';
 import Form from '../components/Form';
 import InputField from '../components/InputField';
-import apiFetch from '../functions/apiFetch';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import Alert from '../components/Alert';
-
+import useSubmitTodo from '../hooks/useSubmitTodo';
 
 const Create = () => {
-    const [isSaving, setIsSaving] = useState(false);
     const todoState = useSelector((state) => state.todo);
     const dispatch = useDispatch();
 
+    const onSuccess = () => {
+        dispatch(updateTodoSuccess({ success: `Todo "${todoState.body.name}" saved successfully` }));
+        dispatch(clearTodoBody());
+    }
+    const onError = (error) => {
+        dispatch(updateTodoError({ error }));
+    }
+    
+    const {
+        selectors: {
+            isSaving,
+        },
+        actions: {
+            submitTodo,
+        }
+    } = useSubmitTodo({ name: todoState.body.name, onSuccess, onError })
+
     const handleSubmit = async (event) => {
         event.preventDefault();
-
-        if (todoState.body.name) {
-            setIsSaving(true);
-            dispatch(clearTodoAlerts());
-            let response = await apiFetch("/todo", {
-                body: todoState.body, 
-                method: "POST"
-            });
-            setIsSaving(false);
-            if (response.status === 201) {
-                dispatch(updateTodoSuccess({ success: `Todo "${todoState.body.name}" saved successfully` }));
-                dispatch(clearTodoBody());
-            }
-            else {
-                dispatch(updateTodoError({ error: response.body.error }));
-            }
-        }
-    };
+        submitTodo()
+    }
 
     return (
         <PageLayout title="Create todo">
